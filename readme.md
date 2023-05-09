@@ -472,3 +472,202 @@ VALUES ('PENTHOUSE', 185.00);
 ```
 
 ---
+
+### Updating Existing Data
+
+When you need to change values in a table, use the `UPDATE` command. The general construction to update a row is:
+
+```sql
+UPDATE table
+  SET column1 = value1,
+      column2 = value2
+  WHERE condition;
+```
+
+Note that `UPDATE` usually requires a `WHERE` clause to specify the row or rows to be updated. As with `SELECT`, if you don't specify a condition to restrict the rows, the command applies to all the rows in the table.
+
+For example, to update the name and country of the customer with ID 3:
+
+```sql
+UPDATE customers
+  SET name='Bob Marley',
+      country='Jamaica'
+  WHERE id=3;
+```
+
+```
+ id |    name    |           email            |     phone     |   address   |    city    | postcode | country
+----+------------+----------------------------+---------------+-------------+------------+----------+---------
+  3 | Bob Marley | alice.evans001@hotmail.com | 0161 345 6789 | 3 High Road | Manchester | m13 4ef  | Jamaica
+```
+
+### Exercise 3
+
+1.  Update the postcode of the customer named `Alice Evans` to `M21 8UP`
+
+```sql
+UPDATE customers
+SET postcode = 'M21 8UP'
+WHERE name = 'Alice Evans'
+```
+
+```
+ id |    name     |           email            |     phone     |   address   |    city    | postcode | country
+----+-------------+----------------------------+---------------+-------------+------------+----------+---------
+  3 | Alice Evans | alice.evans001@hotmail.com | 0161 345 6789 | 3 High Road | Manchester | M21 8UP  | UK
+```
+
+2.  Update room 107 to allow up to 3 guests
+
+```sql
+UPDATE rooms
+SET no_guests = 3
+WHERE room_no = 107;
+```
+
+```
+UPDATE rooms
+SET no_guests = 3
+WHERE room_no = 107;
+```
+
+3.  For the customer named `Nadia Sethuraman`, update her address to `2 Blue Street`, her city to `Glasgow` and her postcode to `G12 1AB` in one query
+
+```sql
+UPDATE customers
+SET address = '2 Blue Street',
+    city = 'Glasgow',
+    postcode = 'G12 1AB'
+WHERE name = 'Nadia Sethuraman';
+```
+
+```
+ id |       name       |           email           | phone |    address    |  city   | postcode | country
+----+------------------+---------------------------+-------+---------------+---------+----------+---------
+  6 | Nadia Sethuraman | nadia.sethuraman@mail.com |       | 2 Blue Street | Glasgow | G12 1AB  | UK
+```
+
+4.  Update all the future bookings of customer with ID 96 to 3 nights (starting on the same check-in date) in one query
+
+```sql
+UPDATE reservations
+SET checkout_date = checkin_date + INTERVAL '3 days'
+WHERE cust_id = 96 AND checkin_date > CURRENT_DATE;
+```
+
+```
+ id | cust_id | room_no | checkin_date | checkout_date | no_guests | booking_date
+----+---------+---------+--------------+---------------+-----------+--------------
+ 74 |      96 |         | 2023-06-03   | 2023-06-06    |         1 | 2023-05-06
+ 80 |      96 |         | 2023-05-31   | 2023-06-03    |         1 | 2023-05-06
+```
+
+### Deleting a row
+
+The syntax to delete a row is:
+
+```sql
+DELETE FROM table WHERE condition;
+```
+
+For example, to delete the booking with ID 4:
+
+```sql
+DELETE FROM reservations WHERE id=4;
+```
+
+**NOTE:** If you don't supply a `WHERE` clause with `DELETE` or `UPDATE` the command will be applied to **all** the rows in the table which is rarely what you want.
+
+### Exercise 4
+
+1.  Delete the bookings of customer ID `108` that do not have a room number assigned
+
+```sql
+DELETE FROM reservations
+WHERE cust_id = 108 AND room_no IS NULL;
+```
+
+BEFORE
+
+```
+ id  | cust_id | room_no | checkin_date | checkout_date | no_guests | booking_date
+-----+---------+---------+--------------+---------------+-----------+--------------
+  28 |     108 |         | 2023-06-05   | 2023-06-08    |         1 | 2023-05-06
+  85 |     108 |     405 | 2023-04-07   | 2023-04-08    |         2 | 2023-03-23
+ 105 |     108 |         | 2023-06-02   | 2023-06-04    |         1 | 2023-05-06
+```
+
+AFTER
+
+```
+ id | cust_id | room_no | checkin_date | checkout_date | no_guests | booking_date
+----+---------+---------+--------------+---------------+-----------+--------------
+ 85 |     108 |     405 | 2023-04-07   | 2023-04-08    |         2 | 2023-03-23
+```
+
+2.  Delete all the bookings of customer Juri Yoshido (customer id 96)
+
+```sql
+DELETE FROM reservations
+WHERE cust_id = 96
+```
+
+```sql
+DELETE FROM reservations
+WHERE cust_id IN (
+  SELECT cust_id
+  FROM reservations
+  JOIN customers
+  ON reservations.cust_id = customers.id
+  WHERE customers.name = 'Juri Yoshido'
+);
+```
+
+BEFORE
+
+```
+ id | cust_id | room_no | checkin_date | checkout_date | no_guests | booking_date
+----+---------+---------+--------------+---------------+-----------+--------------
+ 74 |      96 |         | 2023-06-03   | 2023-06-06    |         1 | 2023-05-06
+ 80 |      96 |         | 2023-05-31   | 2023-06-03    |         1 | 2023-05-06
+
+```
+
+AFTER
+
+```
+ id | cust_id | room_no | checkin_date | checkout_date | no_guests | booking_date
+----+---------+---------+--------------+---------------+-----------+--------------
+(0 rows)
+```
+
+3.  Delete the customer details for Juri Yoshido
+
+```sql
+DELETE FROM customers
+WHERE id = 96;
+```
+
+```sql
+DELETE FROM customers
+WHERE name = 'Juri Yoshido';
+```
+
+BEFORE
+
+```
+ id |     name     |         email         |   phone    |      address       |  city  | postcode | country
+----+--------------+-----------------------+------------+--------------------+--------+----------+---------
+ 96 | Juri Yoshido | juri.yoshido@klqb.net | 6175559555 | 8616 Spinnaker Dr. | Boston | 51003    | USA
+
+```
+
+AFTER
+
+```
+ id | name | email | phone | address | city | postcode | country
+----+------+-------+-------+---------+------+----------+---------
+(0 rows)
+```
+
+---
