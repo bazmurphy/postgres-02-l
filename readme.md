@@ -168,3 +168,241 @@ FROM reservations;
 -----
   36
 ```
+
+### Grouping Rows for Aggregation
+
+You can calculate aggregates over subsets of rows using the GROUP BY clause:
+
+```sql
+SELECT count(*) FROM rooms
+  GROUP BY room_type;
+```
+
+```
+ count
+-------
+    14
+    14
+     8
+    10
+     2
+```
+
+What do you notice?
+
+The query calculated the counts correctly but we have no idea which room type each value represents. To solve this we are allowed to include the GROUP BY expressions in the list of selected values, as below:
+
+```sql
+SELECT room_type, count(*) FROM rooms
+  GROUP BY room_type;
+```
+
+```
+ room_type    | count
+--------------+-------
+ PREMIUM      |    14
+ PREMIER      |    14
+ PREMIER PLUS |     8
+ PREMIUM PLUS |    10
+ FAMILY       |     2
+```
+
+Notice the `room_type` used for GROUP BY is also included in the SELECT list of values.
+
+We can group by multiple expressions, for example:
+
+```sql
+SELECT trunc(room_no/100) AS floor,
+       to_char(checkin_date, 'YYYY-MM') AS month,
+       count(*),
+       sum(no_guests),
+       avg(no_guests)
+  FROM reservations
+  GROUP BY floor, month;
+```
+
+```
+ floor |  month  | count | sum |          avg
+-------+---------+-------+-----+------------------------
+       | 2023-06 |    14 |  17 |     1.2142857142857143
+     1 | 2023-04 |     3 |   5 |     1.6666666666666667
+     4 | 2023-04 |     8 |  12 |     1.5000000000000000
+     4 | 2023-03 |     7 |  10 |     1.4285714285714286
+     2 | 2023-03 |    10 |  14 |     1.4000000000000000
+     3 | 2023-04 |     8 |  12 |     1.5000000000000000
+       | 2023-05 |    27 |  37 |     1.3703703703703704
+     2 | 2023-04 |     8 |  14 |     1.7500000000000000
+     2 | 2023-05 |     1 |   1 | 1.00000000000000000000
+     1 | 2023-03 |    14 |  21 |     1.5000000000000000
+     3 | 2023-05 |     2 |   3 |     1.5000000000000000
+     3 | 2023-03 |     4 |   6 |     1.5000000000000000
+```
+
+Notice that the GROUP BY is using the column aliases `floor` and `month` that have been defined in the select list. This works in many, but not all, SQL implementations. (In those that don't allow aliases you must use the full expression, for example: `trunc(room_no/100)` instead of `floor`)
+
+You can use a WHERE clause to restrict the rows that are included in the aggregate function. For example, if we need the above query for only the 2nd and 3rd floors:
+
+```sql
+SELECT trunc(room_no/100) AS floor,
+       to_char(checkin_date, 'YYYY-MM') AS month,
+       count(*),
+       sum(no_guests),
+       avg(no_guests)
+  FROM reservations
+  WHERE room_no BETWEEN 200 AND 399
+  GROUP BY floor, month;
+```
+
+```
+ floor |  month  | count | sum |          avg
+-------+---------+-------+-----+------------------------
+     2 | 2023-04 |     8 |  14 |     1.7500000000000000
+     2 | 2023-03 |    10 |  14 |     1.4000000000000000
+     3 | 2023-04 |     8 |  12 |     1.5000000000000000
+     2 | 2023-05 |     1 |   1 | 1.00000000000000000000
+     3 | 2023-05 |     2 |   3 |     1.5000000000000000
+     3 | 2023-03 |     4 |   6 |     1.5000000000000000
+```
+
+Note that it is NOT usually possible to use column aliases in the where condition.
+
+A WHERE clause is applied before any aggregation, if you need to restrict results using an aggregate function you can't do that using the WHERE clause.
+
+In the above, to return only results with the number of reservations greater than, say, 4 we use the HAVING clause:
+
+```sql
+SELECT trunc(room_no/100) AS floor,
+       to_char(checkin_date, 'YYYY-MM') AS month,
+       count(*), sum(no_guests), avg(no_guests)
+   FROM reservations
+   GROUP BY floor, month
+   HAVING count(*) > 4;    --<< Note the HAVING keyword
+```
+
+The order of clauses in the SELECT statement is:
+
+```sql
+SELECT ...
+   FROM ...
+   [WHERE ...]
+   [GROUP BY ...
+   [HAVING ...] ]
+   [ORDER BY ...]
+```
+
+```
+ floor |  month  | count | sum |        avg
+-------+---------+-------+-----+--------------------
+       | 2023-06 |    14 |  17 | 1.2142857142857143
+     4 | 2023-04 |     8 |  12 | 1.5000000000000000
+     4 | 2023-03 |     7 |  10 | 1.4285714285714286
+     2 | 2023-03 |    10 |  14 | 1.4000000000000000
+     3 | 2023-04 |     8 |  12 | 1.5000000000000000
+       | 2023-05 |    27 |  37 | 1.3703703703703704
+     2 | 2023-04 |     8 |  14 | 1.7500000000000000
+     1 | 2023-03 |    14 |  21 | 1.5000000000000000
+```
+
+The square brackets indicate optional clauses. Note that HAVING is only relevant when you have a GROUP BY and must follow it in the SELECT statement.
+
+It can be confusing at first knowing whether to use a WHERE clause or a HAVING clause with GROUP BY.
+
+- Use the WHERE clause when values you want to test are available without having to use any aggregate functions (e.g. plain column values).
+
+- Use HAVING when the values you want to test are the results of aggregate functions (e.g. `count(*)`, `sum(amount)`, `min(x)`, etc...).
+
+---
+
+### Exercise 2
+
+1.  What is the grand total of all invoices for each month?
+
+```sql
+SELECT SUM(total) AS grand_total,
+       to_char(invoice_date, 'Month YYYY') AS month
+FROM invoices
+GROUP by month;
+```
+
+```
+ grand_total |     month
+-------------+----------------
+     9418.00 | April     2023
+     8608.00 | March     2023
+     1600.00 | May       2023
+```
+
+2.  How many guests could be accommodated at one time on each floor?
+
+```sql
+SELECT TRUNC(room_no/100) AS floor,
+       SUM(no_guests) AS total_guests
+FROM reservations
+WHERE room_no IS NOT NULL
+GROUP BY floor
+ORDER BY floor;
+```
+
+```
+ floor | total_guests
+-------+--------------
+     1 |           26
+     2 |           29
+     3 |           21
+     4 |           22
+```
+
+3.  Which rooms have been occupied for less than 10 nights and for how many nights have they been occupied?
+
+```sql
+SELECT room_no, SUM(checkout_date - checkin_date) AS total_nights_occupied
+FROM reservations
+WHERE room_no IS NOT NULL
+GROUP BY room_no
+HAVING SUM(checkout_date - checkin_date) < 10
+ORDER BY room_no;
+```
+
+```
+ room_no | total_nights_occupied
+---------+-----------------------
+     101 |                     4
+     102 |                     1
+     103 |                     4
+     104 |                     9
+     106 |                     3
+     107 |                     4
+     108 |                     1
+     109 |                     8
+     110 |                     8
+     112 |                     1
+     201 |                     2
+     202 |                     9
+     203 |                     7
+     204 |                     8
+     208 |                     6
+     209 |                     1
+     210 |                     6
+     212 |                     3
+     301 |                     7
+     302 |                     5
+     303 |                     6
+     304 |                     1
+     305 |                     7
+     306 |                     1
+     309 |                     8
+     311 |                     7
+     312 |                     4
+     401 |                     7
+     402 |                     9
+     404 |                     3
+     405 |                     3
+     408 |                     1
+     409 |                     1
+     410 |                     5
+     411 |                     9
+     412 |                     2
+
+```
+
+---
