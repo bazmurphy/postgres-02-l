@@ -406,3 +406,69 @@ ORDER BY room_no;
 ```
 
 ---
+
+## Inserting, Updating and Deleting Rows
+
+### Inserting data
+
+To add new data to a table use the INSERT command that has the following format:
+
+```sql
+INSERT INTO table_name (column_name, ...)
+       VALUES (value, ...)
+```
+
+For example:
+
+```sql
+INSERT INTO customers (name, email, address, city, postcode, country)
+  VALUES ('John Smith','j.smith@johnsmith.org',
+          '11 New Road','Liverpool','L10 2AB','UK');
+```
+
+```
+ id  |    name    |         email         |     phone     |   address   |   city    | postcode | country
+-----+------------+-----------------------+---------------+-------------+-----------+----------+---------
+   1 | John Smith | j.smith@johnsmith.org | 0151 123 4567 | 11 New Road | Liverpool | L10 2AB  | UK
+ 134 | John Smith | j.smith@johnsmith.org |               | 11 New Road | Liverpool | L10 2AB  | UK
+```
+
+Note:
+
+1. You do not need to supply the value for the automatically generated `id` column, it is populated from a sequence generator object.
+2. The order of values in the `VALUES (...)` clause must correspond to the columns in the column name list. The first value is stored in the first named column, the second value in the second named column and so forth.
+
+### Exercise 6
+
+1. Insert yourself in the `customers` table. Query the table to check your new data.
+
+```sql
+INSERT INTO customers (name, email, phone, address, city, postcode, country)
+VALUES ('Baz Murphy', 'bazmurphy@gmail.com', '0123 456 7890', '1 Old Road', 'London', 'EC1 1AB', 'UK');
+```
+
+```
+ id  |    name    |        email        |     phone     |  address   |  city  | postcode | country
+-----+------------+---------------------+---------------+------------+--------+----------+---------
+ 135 | Baz Murphy | bazmurphy@gmail.com | 0123 456 7890 | 1 Old Road | London | EC1 1AB  | UK
+```
+
+2. Insert a new room type of PENTHOUSE with a default rate of 185.00.
+
+```sql
+INSERT INTO room_types (room_type, def_rate)
+VALUES ('PENTHOUSE', 185.00);
+```
+
+```
+  room_type   | def_rate
+--------------+----------
+ FAMILY       |   123.00
+ PREMIER      |   110.00
+ PREMIER PLUS |   123.00
+ PREMIUM      |    85.00
+ PREMIUM PLUS |    98.00
+ PENTHOUSE    |   185.00
+```
+
+---
