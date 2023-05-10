@@ -1,0 +1,27 @@
+* {
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+  color: black;
+}
+
+body {
+  display: grid;
+  place-items: center;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+header > img {
+  max-width: 40px;
+  max-height: 40px;
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
