@@ -1161,3 +1161,239 @@ CREATE TABLE charge_items (
 ```
 
 ---
+
+## Defining Primary and Foreign Keys
+
+### Defining Primary Keys
+
+Use the following templates to define a Primary Key.
+
+For a single-column PK use:
+
+```sql
+CREATE TABLE <table name> (
+  ...
+  <column name>   <data type>   PRIMARY KEY,
+  ...
+)
+```
+
+For example:
+
+```sql
+CREATE TABLE rooms (
+  room_no       INTEGER   PRIMARY KEY,
+  ...
+);
+```
+
+To define a multi-column primary key you must define a constraint separate from the column definitions, as below:
+
+```sql
+CREATE TABLE <table name> (
+  ...
+  <pk col 1>     <data type>,
+  <pk col 2>     <data type>,
+  ... ,
+  PRIMARY KEY (<pk col 1>, <pk col 2>),
+  ...
+);
+```
+
+For example:
+
+```sql
+CREATE TABLE invoice_items (
+  inv_id        INTEGER REFERENCES invoices(id),
+  item_no       INTEGER,
+  ... ,
+  PRIMARY KEY (inv_id, item_no),
+  ...
+);
+```
+
+There can be only one primary key in a table definition. The `PRIMARY KEY` definition implies NOT NULL so no column in a table's PK can be set to NULL.
+
+**Note: a partial primary key can be a foreign key as well.**
+
+### Defining Foreign Keys
+
+To define foreign keys use either:
+
+For a single-column foreign key:
+
+```sql
+  <column name>   <data type>   REFERENCES <table name> (<column name>);
+```
+
+where the &lt;column name&gt; in the REFERENCES clause is the column name in the referenced table, not the one being defined at this point. For example, in the `reservations` table:
+
+```sql
+  ...
+  cust_id         INTEGER NOT NULL   REFERENCES customers (id),
+  ...
+```
+
+For multi-column foreign keys we must again use a separate constraint definition, as shown:
+
+```sql
+CREATE TABLE customer_challenges (
+  id           SERIAL PRIMARY KEY,
+  inv_id       INTEGER,
+  item_no      INTEGER,
+  ...
+  FOREIGN KEY (inv_id, item_no) REFERENCES invoice_items (inv_id, item_no),
+  ...
+);
+```
+
+---
+
+### Exercise 8
+
+1.  Try to delete the customer Mary Saveley. What happens and why?
+
+```sql
+DELETE FROM customers
+WHERE name = 'Mary Saveley';
+```
+
+```
+ERROR:  update or delete on table "customers" violates foreign key constraint "res_guest_fk" on table "reservations"
+DETAIL:  Key (id)=(25) is still referenced from table "reservations".
+```
+
+We cannot delete the record from the `customers` table.
+Because in `build-hotel.sql` when the `reservations` table is created there is a link established between the `cust_id` in the `reservations` table and the `id` in the `customers` table.
+
+```sql
+CREATE TABLE reservations (
+  id            SERIAL PRIMARY KEY,
+  cust_id       INTEGER NOT NULL,
+  room_no       INTEGER,
+  checkin_date  DATE NOT NULL,
+  checkout_date DATE,
+  no_guests     INTEGER,
+  booking_date  DATE,
+  CONSTRAINT res_guest_fk FOREIGN KEY (cust_id) REFERENCES customers(id),
+  CONSTRAINT res_room_fk  FOREIGN KEY (room_no) REFERENCES rooms(room_no)
+);
+```
+
+2.  Insert a new room, number 313 as room type 'SUPER PREMIER'.
+
+```sql
+INSERT INTO rooms (room_no, rate, room_type, no_guests)
+VALUES (313, 136.00, 'SUPER PREMIER', 2);
+```
+
+```
+ERROR:  insert or update on table "rooms" violates foreign key constraint "rooms_room_type_fkey"
+DETAIL:  Key (room_type)=(SUPER PREMIER) is not present in table "room_types".
+```
+
+The `room_types` table does not contain a PRIMARY KEY `'SUPER PREMIER'` and therefore it will not allow us to add a record with this `room_type`.
+
+```sql
+CREATE TABLE room_types (
+    room_type           VARCHAR(30) PRIMARY KEY,
+    def_rate            NUMERIC(6,2)
+);
+
+INSERT INTO room_types VALUES('FAMILY',123.00);
+INSERT INTO room_types VALUES('PREMIER',110.00);
+INSERT INTO room_types VALUES('PREMIER PLUS',123.00);
+INSERT INTO room_types VALUES('PREMIUM',85.00);
+INSERT INTO room_types VALUES('PREMIUM PLUS',98.00);
+
+CREATE TABLE rooms (
+  room_no INTEGER PRIMARY KEY,
+  rate NUMERIC(6,2) NOT NULL,
+  room_type VARCHAR(30),
+  no_guests INTEGER,
+  FOREIGN KEY (room_type) REFERENCES room_types(room_type)
+);
+```
+
+We could solve this by first inserting a new record into `room_types` and then trying the operation again.
+
+```sql
+INSERT INTO room_types (room_type, def_rate)
+VALUES ('SUPER PREMIER', 136.00);
+```
+
+```
+   room_type   | def_rate
+---------------+----------
+ FAMILY        |   123.00
+ PREMIER       |   110.00
+ PREMIER PLUS  |   123.00
+ PREMIUM       |    85.00
+ PREMIUM PLUS  |    98.00
+ PENTHOUSE     |   185.00
+ SUPER PREMIER |   136.00
+```
+
+```sql
+INSERT INTO rooms (room_no, rate, room_type, no_guests)
+VALUES (313, 136.00, 'SUPER PREMIER', 2);
+```
+
+```
+ room_no |  rate  |   room_type   | no_guests
+---------+--------+---------------+-----------
+     313 | 136.00 | SUPER PREMIER |         2
+
+```
+
+3.  Define primary and foreign keys required by the charge_items table
+
+```sql
+ALTER TABLE charge_items
+ADD PRIMARY KEY (id)
+```
+
+(this was already done above on table creation)
+
+```sql
+ALTER TABLE charge_items
+ADD FOREIGN KEY (charge_point_id)
+REFERENCES charge_points(id);
+```
+
+```
+      Column       |            Type             | Collation | Nullable |                 Default
+-------------------+-----------------------------+-----------+----------+------------------------------------------
+ id                | integer                     |           | not null | nextval('charge_items_id_seq'::regclass)
+ room_no           | integer                     |           | not null |
+ charge_point_id   | integer                     |           | not null |
+ amount            | numeric(6,2)                |           |          |
+ date_time         | timestamp without time zone |           | not null |
+ customer_comments | character varying(100)      |           |          |
+Indexes:
+    "charge_items_pkey" PRIMARY KEY, btree (id)
+Foreign-key constraints:
+    "charge_items_charge_point_id_fkey" FOREIGN KEY (charge_point_id) REFERENCES charge_points(id)
+```
+
+4.  Insert some rows into the charge_items table. You can invent the details.
+
+```sql
+INSERT INTO charge_items (room_no, charge_point_id, amount, date_time, customer_comments)
+VALUES
+  (101, 1, 10.00, '2023-05-10 10:00:00.000000+00', 'Nice Gift Shop'),
+  (202, 2, 50.00, '2023-05-10 14:00:00.000000+00', 'Fun games of Pool!'),
+  (303, 3, 80.00, '2023-05-10 19:00:00.000000+00', 'Great restaurant and views!'),
+  (404, 4, 15.00, '2023-05-11 01:00:00.000000+00', 'I need a Snack in bed ;)');
+```
+
+```
+ id | room_no | charge_point_id | amount |      date_time      |      customer_comments
+----+---------+-----------------+--------+---------------------+-----------------------------
+  1 |     101 |               1 |  10.00 | 2023-05-10 10:00:00 | Nice Gift Shop
+  2 |     202 |               2 |  50.00 | 2023-05-10 14:00:00 | Fun games of Pool!
+  3 |     303 |               3 |  80.00 | 2023-05-10 19:00:00 | Great restaurant and views!
+  4 |     404 |               4 |  15.00 | 2023-05-11 01:00:00 | I need a Snack in bed ;)
+```
+
+---
