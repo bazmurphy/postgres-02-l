@@ -508,7 +508,7 @@ UPDATE customers
 ```sql
 UPDATE customers
 SET postcode = 'M21 8UP'
-WHERE name = 'Alice Evans'
+WHERE name = 'Alice Evans';
 ```
 
 ```
@@ -668,6 +668,205 @@ AFTER
  id | name | email | phone | address | city | postcode | country
 ----+------+-------+-------+---------+------+----------+---------
 (0 rows)
+```
+
+---
+
+## Joining tables
+
+### Introduction
+
+So far we've only looked at one table in any query. Many problems require data from several tables - how do we do that?
+
+For example, if I want to phone or email customers who have not yet paid their invoices, which tables do I need to look at?
+
+Use joins to combine data from more than one table. Joins use column values to match rows in one table to rows in another.
+
+The join columns are usually referred to as foreign keys and primary keys.
+
+![ER Diagram](er-diagram.png)
+
+![Join Diagram](join-diagram.png)
+
+### Foreign and Primary Keys
+
+Each table should have a **Primary Key**. This is one or more columns whose values, which cannot be NULL, are combined to provide a unique identifying value for each row. Natural primary keys are often difficult to find so many tables use an arbitrary integer whose value is automatically generated when the row is created. When joining tables we need to match a single row to one or more other rows, usually in another table - for example, matching a customer to her/his reservations. The single row (customer) is usually identified by its primary key value.
+
+**Foreign Keys** are the columns in a table that reference corresponding columns in another table (although self-referencing foreign keys can reference the same table). For example, the `res_id` column in the invoices table references the `id` column in the reservations table (see diagram above).
+
+The referenced column is almost always the primary key of the referenced table because a foreign key must always reference exactly one row in the referenced table (primary keys guarantee that).
+
+### Using JOIN in SQL
+
+To join reservations and invoices in SQL:
+
+```sql
+SELECT r.cust_id, r.room_no, i.invoice_date, i.total
+  FROM reservations r JOIN
+       invoices i ON (r.id = i.res_id);
+```
+
+**_Notice:_**
+
+- The new keyword JOIN with ON (predicate)
+- Table aliases (`r` and `i`) used to qualify columns
+
+The new syntax follows the following pattern:
+
+```sql
+SELECT ...
+  FROM ... [JOIN ... ON (...)]...
+  [WHERE ...]
+  [GROUP BY ... [HAVING ...] ]
+  [ORDER BY ...]
+```
+
+Use the JOIN to define the combined row source then you can use WHERE, DISTINCT, GROUP BY, ORDER BY, etc... as with single-table queries. For example:
+
+```sql
+    SELECT r.cust_id, r.room_no, i.invoice_date, i.total
+      FROM reservations r
+      JOIN invoices i ON (i.res_id = r.id)
+     WHERE r.checkin_date > '2018-07-01'
+       AND i.total < 500
+  ORDER BY i.invoice_date DESC, r.cust_id;
+```
+
+```
+ cust_id | room_no | invoice_date | total
+---------+---------+--------------+--------
+      91 |     211 | 2023-05-04   | 490.00
+     117 |     101 | 2023-05-04   | 340.00
+      52 |     305 | 2023-05-03   | 110.00
+      38 |     411 | 2023-04-30   | 246.00
+      18 |     211 | 2023-04-28   | 196.00
+       4 |     312 | 2023-04-27   | 369.00
+      67 |     401 | 2023-04-27   | 110.00
+      88 |     206 | 2023-04-25   |  85.00
+      23 |     304 | 2023-04-23   | 110.00
+      97 |     309 | 2023-04-22   | 246.00
+      .....
+```
+
+There is no theoretical limit to the number of tables that can be joined in a query, although practical considerations like
+complexity and performance must be considered. It is quite common, though, to find up to seven or eight tables joined in a query.
+
+Multi-table joins just extend the syntax to add more tables, as below:
+
+```sql
+SELECT c.name, c.phone, c.email, i.invoice_date, i.total
+  FROM customers c
+  JOIN reservations r ON (r.cust_id = c.id)
+  JOIN invoices i ON (r.id = i.res_id)
+  WHERE i.invoice_date < current_date - interval '1 month'
+    AND i.paid = FALSE
+  ORDER BY i.invoice_date DESC, c.id;
+```
+
+```
+       name       |     phone      |           email            | invoice_date | total
+------------------+----------------+----------------------------+--------------+--------
+ Mary Saveley     | 78.32.5555     | mary.saveley@yppl.net      | 2023-04-06   | 255.00
+ Alice Evans      | 0161 345 6789  | alice.evans001@hotmail.com | 2023-03-31   | 255.00
+ Roland Mendel    | 7675-3555      | roland.mendel@wclf.net     | 2023-03-20   | 255.00
+ Eduardo Saavedra | (93) 203 4555  | eduardo.saavedra@tiqa.net  | 2023-03-19   | 123.00
+ Wendy Victorino  | +65 224 1555   | wendy.victorino@ueai.net   | 2023-03-15   | 123.00
+ Carmen Anton     | +34 913 728555 | carmen.anton@bhmy.net      | 2023-03-14   | 123.00
+ Roland Mendel    | 7675-3555      | roland.mendel@wclf.net     | 2023-03-13   | 255.00
+```
+
+**_Note_**
+You have just learned about what is called the INNER JOIN, which is the most common kind of join. Indeed, you can use the keyword INNER in the JOIN syntax, as follows:
+
+```sql
+SELECT c.name, c.phone, c.email, i.invoice_date, i.total
+  FROM customers c
+  INNER JOIN reservations r ON (r.cust_id = c.id)
+  INNER JOIN invoices i ON (r.id = i.res_id)
+  WHERE i.invoice_date < current_date - interval '1 month'
+    AND i.paid = FALSE
+  ORDER BY i.invoice_date DESC, c.id;
+```
+
+The INNER keyword is not required (it's the default) but some organisations might require it for the sake of coding standards.
+
+There are other kinds of JOIN, specifically the OUTER JOIN and the CROSS JOIN but these are less frequently used in applications.
+If you want to find out about these kinds of JOIN refer to the [PostgreSQL documentation](https://www.postgresql.org/docs/12/queries-table-expressions.html).
+
+---
+
+### Exercise 5
+
+1.  Try and understand each of the queries above in your `psql` prompt
+
+Queries are printed above.
+
+2.  Which customers occupied room 111 and what are their details?
+
+```sql
+SELECT r.room_no, c.name, c.email, c.phone, c.address, c.city, c.postcode, c.country
+FROM customers c
+INNER JOIN reservations r
+ON (c.id = r.cust_id)
+WHERE r.room_no = 111;
+```
+
+```
+ room_no |     name     |         email         |     phone      |        address         |      city      | postcode |  country
+---------+--------------+-----------------------+----------------+------------------------+----------------+----------+-----------
+     111 | Palle Ibsen  | palle.ibsen@bjqn.net  | 86 21 3555     | Smagsloget 45          | Århus          | 8200     | Denmark
+     111 | Mel Andersen | mel.andersen@nggg.net | 030-0074555    | Obere Str. 57          | Berlin         | 12209    | Germany
+     111 | Ben Calaghan | ben.calaghan@bprq.net | 61-7-3844-6555 | 31 Duncan St. West End | South Brisbane | 4101     | Australia
+```
+
+3.  List the customer name, room details (room number, type and rate), nights stay and departure dates for all UK customers.
+
+```sql
+SELECT c.name, ro.room_no, ro.room_type, ro.rate, re.checkout_date - re.checkin_date AS nights_stay, checkout_date AS depature_date
+FROM customers c
+INNER JOIN reservations re
+ON (c.id = re.cust_id)
+INNER JOIN rooms ro
+ON (re.room_no = ro.room_no)
+WHERE c.country = 'UK'
+ORDER BY re.checkout_date;
+```
+
+```
+       name       | room_no |  room_type   |  rate  | nights_stay | depature_date
+------------------+---------+--------------+--------+-------------+---------------
+ Sue Jones        |     412 | FAMILY       | 123.00 |           2 | 2023-03-20
+ Sue Jones        |     208 | PREMIUM PLUS |  98.00 |           6 | 2023-03-29
+ Steven King      |     311 | PREMIER PLUS | 123.00 |           5 | 2023-03-31
+ Alice Evans      |     204 | PREMIUM      |  85.00 |           3 | 2023-03-31
+ Steven King      |     104 | PREMIUM      |  85.00 |           2 | 2023-04-01
+ Helen Bennett    |     110 | PREMIUM PLUS |  98.00 |           5 | 2023-04-03
+ Nadia Sethuraman |     211 | PREMIUM PLUS |  98.00 |           3 | 2023-04-06
+ Mohammed Trungpa |     311 | PREMIER PLUS | 123.00 |           2 | 2023-04-19
+ Mohammed Trungpa |     312 | PREMIER PLUS | 123.00 |           3 | 2023-04-27
+ Thomas Smith     |     301 | PREMIER      | 110.00 |           6 | 2023-05-05
+ Rachel Ashworth  |     302 | PREMIER      | 110.00 |           5 | 2023-05-09
+```
+
+4.  List name, phone and email along with all reservations and invoices for customer Mary Saveley.
+
+```sql
+SELECT c.name, c.phone, c.email, r.room_no, r.checkin_date, r.checkout_date, i.invoice_date, i.total, i.paid
+FROM customers c
+INNER JOIN reservations r
+on (c.id = r.cust_id)
+INNER JOIN invoices i
+ON (r.id = i.res_id)
+WHERE c.name = 'Mary Saveley'
+ORDER BY r.checkout_date;
+```
+
+```
+     name     |   phone    |         email         | room_no | checkin_date | checkout_date | invoice_date | total  | paid
+--------------+------------+-----------------------+---------+--------------+---------------+--------------+--------+------
+ Mary Saveley | 78.32.5555 | mary.saveley@yppl.net |     109 | 2023-03-28   | 2023-03-30    | 2023-03-30   | 196.00 | t
+ Mary Saveley | 78.32.5555 | mary.saveley@yppl.net |     206 | 2023-04-03   | 2023-04-06    | 2023-04-06   | 255.00 | f
+ Mary Saveley | 78.32.5555 | mary.saveley@yppl.net |     103 | 2023-04-08   | 2023-04-12    | 2023-04-12   | 340.00 | t
 ```
 
 ---
