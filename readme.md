@@ -788,6 +788,18 @@ SELECT c.name, c.phone, c.email, i.invoice_date, i.total
   ORDER BY i.invoice_date DESC, c.id;
 ```
 
+```
+       name       |     phone      |           email            | invoice_date | total
+------------------+----------------+----------------------------+--------------+--------
+ Mary Saveley     | 78.32.5555     | mary.saveley@yppl.net      | 2023-04-06   | 255.00
+ Alice Evans      | 0161 345 6789  | alice.evans001@hotmail.com | 2023-03-31   | 255.00
+ Roland Mendel    | 7675-3555      | roland.mendel@wclf.net     | 2023-03-20   | 255.00
+ Eduardo Saavedra | (93) 203 4555  | eduardo.saavedra@tiqa.net  | 2023-03-19   | 123.00
+ Wendy Victorino  | +65 224 1555   | wendy.victorino@ueai.net   | 2023-03-15   | 123.00
+ Carmen Anton     | +34 913 728555 | carmen.anton@bhmy.net      | 2023-03-14   | 123.00
+ Roland Mendel    | 7675-3555      | roland.mendel@wclf.net     | 2023-03-13   | 255.00
+```
+
 The INNER keyword is not required (it's the default) but some organisations might require it for the sake of coding standards.
 
 There are other kinds of JOIN, specifically the OUTER JOIN and the CROSS JOIN but these are less frequently used in applications.
