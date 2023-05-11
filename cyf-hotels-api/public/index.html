@@ -4,23 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="style.css" />
-    <title>PostgreSQL API</title>
+    <title>PostgreSQL API - Hotels</title>
   </head>
   <body>
     <header>
       <img src="elephant.png" alt="" />
-      <h1>PostgreSQL API</h1>
+      <h1>PostgreSQL API - Hotels</h1>
     </header>
-    <nav>
-      <a href="/customers">Customers</a>
-      <a href="/customers/1">Customers {id}</a>
-      <a href="/reservations">Reservations</a>
-      <a href="/reservations/1">Reservations {id}</a>
-      <a href="/invoices">Invoices</a>
-      <a href="/invoices/1">Invoices {id}</a>
-      <a href="/rooms">Rooms</a>
-      <a href="/rooms/101">Rooms {number}</a>
-      <a href="/room_types">Room Types</a>
-    </nav>
+    <div>
+      <h2>Links to API Routes :</h2>
+      <nav id="nav-links"></nav>
+    </div>
+    <div>
+      <h2>Buttons to Formatted Output :</h2>
+      <nav id="nav-buttons"></nav>
+    </div>
+    <div id="output-container"></div>
+    <script src="script.js"></script>
   </body>
 </html>

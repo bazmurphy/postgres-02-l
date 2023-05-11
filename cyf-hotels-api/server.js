@@ -8,9 +8,9 @@ const { Pool } = require("pg");
 
 // We create a new connection (db) where we specify the credentials to connect to the cyf_hotel database
 const db = new Pool({
-  user: "baz",
+  user: "postgres",
   host: "localhost",
-  database: "cyf_hotels",
+  database: "cyf_hotel",
   password: "password",
   port: 5432,
 });
