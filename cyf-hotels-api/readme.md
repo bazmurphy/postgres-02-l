@@ -4,8 +4,6 @@
 
 ![](project-screenshot.png)
 
----
-
 ## Instructions:
 
 1. clone this repo
