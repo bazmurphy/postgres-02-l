@@ -14,7 +14,7 @@ paths.forEach((path) => {
   const navLinks = document.getElementById("nav-links");
   const link = document.createElement("a");
   link.href = `/${path}`;
-  link.innerText = `${path}`;
+  link.innerText = `/${path}`;
   navLinks.appendChild(link);
 
   const navButtons = document.getElementById("nav-buttons");
